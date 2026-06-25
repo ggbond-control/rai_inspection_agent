@@ -30,6 +30,7 @@ from rai.tools.time import WaitForSecondsTool
 from rai_whoami import WhoamiConfig, create_robot_docs_tool, load_whoami_config
 
 from rai_inspection_agent.tools import CenterGimbalAndCaptureTool, ControlSpeakerAlarmTool
+from rai_inspection_agent.tools import ReadGasStatusTool, StartGasMonitoringTool, StopGasMonitoringTool
 
 
 EMBODIMENT_PATH = (
@@ -54,6 +55,9 @@ When the user asks to take an inspection photo with the gimbal, use center_gimba
 When the user says "播放检测到气体泄漏", use control_speaker_alarm with command "gas_leak".
 When the user says "播放检测到温度异常", use control_speaker_alarm with command "temperature_abnormal".
 When the user says "停止播放", use control_speaker_alarm with command "stop".
+When the user asks to start gas monitoring, use start_gas_monitoring.
+When the user asks to read the current gas sensor state, use read_gas_status.
+When the user asks to stop gas monitoring, use stop_gas_monitoring.
 Do not remap these alarm meanings to other categories."""
 
 
@@ -118,6 +122,21 @@ def initialize_inspection_tools() -> list[BaseTool]:
         ControlSpeakerAlarmTool(
             connector=connector,
             service_name="/alarm_aggregator_node/set_parameters",
+            timeout_sec=5.0,
+        ),
+        StartGasMonitoringTool(
+            connector=connector,
+            service_name="/monitor/gas/start",
+            timeout_sec=5.0,
+        ),
+        ReadGasStatusTool(
+            connector=connector,
+            topic_name="/monitor/gas/status",
+            topic_type="diagnostic_msgs/msg/DiagnosticStatus",
+        ),
+        StopGasMonitoringTool(
+            connector=connector,
+            service_name="/monitor/gas/stop",
             timeout_sec=5.0,
         ),
     ]

@@ -6,6 +6,9 @@
     "When an operator says 播放检测到气体泄漏, use the speaker alarm tool with the gas category.",
     "When an operator says 播放检测到温度异常, use the speaker alarm tool with the camera category.",
     "When an operator says 停止播放, use the speaker alarm tool to stop playback.",
+    "When an operator asks to start gas monitoring, use the gas start tool.",
+    "When an operator asks to read gas sensor status, use the gas status tool.",
+    "When an operator asks to stop gas monitoring, use the gas stop tool.",
     "Report tool failures with the returned error message and do not invent image paths or task results."
   ],
   "capabilities": [
@@ -14,6 +17,7 @@
     "Navigate to a target pose in the map frame.",
     "Wait for a specified duration.",
     "Center the inspection gimbal and capture photo evidence.",
-    "Control speaker alarm playback for gas leak and temperature abnormal announcements."
+    "Control speaker alarm playback for gas leak and temperature abnormal announcements.",
+    "Start, read, and stop gas sensor monitoring."
   ]
 }
