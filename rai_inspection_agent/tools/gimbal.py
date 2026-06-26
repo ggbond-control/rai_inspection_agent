@@ -1,8 +1,10 @@
 import time
+from pathlib import Path
 from typing import Any, Literal, Type
 
 from pydantic import BaseModel, Field
 from rai.communication.ros2 import ROS2Message
+from rai.messages import MultimodalArtifact, preprocess_image
 from rai.tools.ros2.base import BaseROS2Tool
 
 
@@ -41,6 +43,7 @@ class CenterGimbalAndCaptureTool(BaseROS2Tool):
         "Center the inspection gimbal to its home pose, wait for it to settle, "
         "then capture inspection photo(s). Returns the saved image path and status."
     )
+    response_format: Literal["content", "content_and_artifact"] = "content_and_artifact"
     args_schema: Type[CenterGimbalAndCaptureInput] = CenterGimbalAndCaptureInput
 
     action_name: str = Field(default="/center_gimbal_and_capture")
@@ -60,7 +63,7 @@ class CenterGimbalAndCaptureTool(BaseROS2Tool):
         zoom_level: float = 0.0,
         home_timeout_sec: float = 15.0,
         capture_timeout_sec: float = 15.0,
-    ) -> dict[str, Any]:
+    ) -> tuple[str, MultimodalArtifact] | dict[str, Any]:
         if not self.is_writable(self.action_name):
             raise ValueError(f"Action {self.action_name} is not writable")
 
@@ -95,16 +98,46 @@ class CenterGimbalAndCaptureTool(BaseROS2Tool):
             f"{self.result_timeout_sec:.1f}s; action_id={handle}"
         )
 
-    def _format_result(self, action_result: Any, handle: str) -> dict[str, Any]:
+    def _format_result(self, action_result: Any, handle: str) -> tuple[str, MultimodalArtifact]:
         result = getattr(action_result, "result", action_result)
-        return {
-            "status": "succeeded" if getattr(result, "success", False) else "failed",
-            "action_id": handle,
-            "image_uri": getattr(result, "image_uri", ""),
-            "captured_count": getattr(result, "captured_count", 0),
-            "elapsed_sec": getattr(result, "elapsed_sec", 0.0),
-            "error_message": getattr(result, "error_message", ""),
+        image_uri = getattr(result, "image_uri", "")
+        image_paths = self._collect_image_paths(image_uri)
+        artifact: MultimodalArtifact = {
+            "images": [preprocess_image(str(path)) for path in image_paths],
+            "audios": [],
         }
+        content = (
+            "status="
+            + ("succeeded" if getattr(result, "success", False) else "failed")
+            + f" action_id={handle}"
+            + f" image_uri={image_uri}"
+            + f" captured_count={getattr(result, 'captured_count', 0)}"
+            + f" elapsed_sec={getattr(result, 'elapsed_sec', 0.0)}"
+            + f" error_message={getattr(result, 'error_message', '')}"
+        )
+        return content, artifact
+
+    def _collect_image_paths(self, image_uri: str) -> list[Path]:
+        if not image_uri:
+            return []
+
+        primary = Path(image_uri)
+        if not primary.exists():
+            return []
+
+        image_dir = primary.parent
+        candidates = sorted(
+            [
+                path
+                for path in image_dir.iterdir()
+                if path.is_file()
+                and path.suffix.lower() in {".png", ".jpg", ".jpeg", ".bmp", ".webp"}
+                and path.name.startswith("capture_raw_iter")
+            ]
+        )
+        if candidates:
+            return candidates
+        return [primary]
 
 
 def create_center_gimbal_and_capture_tool(
