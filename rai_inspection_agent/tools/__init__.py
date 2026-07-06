@@ -2,12 +2,18 @@
 
 from rai_inspection_agent.tools.artifact_analysis import AnalyzeArtifactImageTool
 from rai_inspection_agent.tools.gimbal import CenterGimbalAndCaptureTool
+from rai_inspection_agent.tools.navigation import SupervisedNavigateToPoseBlockingTool
+from rai_inspection_agent.tools.gas import (
+    ReadGasStatusTool,
+    StartGasMonitoringTool,
+    StopGasMonitoringTool,
+)
 from rai_inspection_agent.tools.speaker import ControlSpeakerAlarmTool
-from rai_inspection_agent.tools.gas import StartGasMonitoringTool, ReadGasStatusTool, StopGasMonitoringTool
 
 __all__ = [
     "AnalyzeArtifactImageTool",
     "CenterGimbalAndCaptureTool",
+    "SupervisedNavigateToPoseBlockingTool",
     "ControlSpeakerAlarmTool",
     "StartGasMonitoringTool",
     "ReadGasStatusTool",

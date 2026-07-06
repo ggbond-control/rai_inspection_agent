@@ -23,15 +23,19 @@ from rai.frontend.memory_streamlit import (
 )
 from rai.memory import MemoryManager, create_memory_agent_with_tools, load_memory_config
 from rai.tools.ros2 import GetROS2TransformConfiguredTool
-from rai.tools.ros2.navigation.nav2_blocking import (
-    GetCurrentPoseTool,
-    NavigateToPoseBlockingTool,
-)
+from rai.tools.ros2.navigation.nav2_blocking import GetCurrentPoseTool
 from rai.tools.time import WaitForSecondsTool
 from rai_whoami import WhoamiConfig, create_robot_docs_tool, load_whoami_config
 
-from rai_inspection_agent.tools import AnalyzeArtifactImageTool, CenterGimbalAndCaptureTool, ControlSpeakerAlarmTool
-from rai_inspection_agent.tools import ReadGasStatusTool, StartGasMonitoringTool, StopGasMonitoringTool
+from rai_inspection_agent.tools import (
+    AnalyzeArtifactImageTool,
+    CenterGimbalAndCaptureTool,
+    ControlSpeakerAlarmTool,
+    ReadGasStatusTool,
+    StartGasMonitoringTool,
+    StopGasMonitoringTool,
+    SupervisedNavigateToPoseBlockingTool,
+)
 
 
 EMBODIMENT_PATH = (
@@ -131,7 +135,7 @@ def initialize_inspection_tools() -> list[BaseTool]:
             timeout_sec=5.0,
         ),
         WaitForSecondsTool(),
-        NavigateToPoseBlockingTool(
+        SupervisedNavigateToPoseBlockingTool(
             connector=connector,
             frame_id="map",
             action_name="navigate_to_pose",
