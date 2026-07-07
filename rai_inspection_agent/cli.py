@@ -69,6 +69,7 @@ def main(argv: list[str] | None = None) -> None:
         namespace=namespace,
         user_id=args.user,
         graph_factory=graph_factory,
+        tools=robot_tools,
         welcome_message_factory=welcome_message,
         **session_kwargs,
     )
