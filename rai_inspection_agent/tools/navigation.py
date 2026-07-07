@@ -44,7 +44,7 @@ class SupervisedNavigateToPoseBlockingTool(BaseROS2Tool):
     action_type: str = Field(default="nav2_msgs/action/NavigateToPose")
     goal_accept_timeout_sec: float = Field(default=5.0, ge=0.1)
     max_duration_sec: float = Field(default=300.0, ge=0.1)
-    stall_timeout_sec: float = Field(default=6.0, ge=0.1)
+    stall_timeout_sec: float = Field(default=20.0, ge=0.1)
     min_progress_m: float = Field(default=0.15, ge=0.0)
     poll_interval_sec: float = Field(default=1, ge=0.01)
 
