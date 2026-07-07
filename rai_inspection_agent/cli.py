@@ -1,7 +1,12 @@
 import argparse
 from pathlib import Path
 
-from rai.frontend.cli import CliRenderer, MemoryCliSession, run_memory_cli
+from rai.frontend.cli import (
+    CliRenderer,
+    MemoryCliSession,
+    run_memory_cli,
+    shutdown_tool_connectors,
+)
 from rai.memory import load_memory_config
 from rai_whoami import load_whoami_config
 
@@ -75,9 +80,9 @@ def main(argv: list[str] | None = None) -> None:
             history_path=args.history,
         )
     finally:
+        shutdown_tool_connectors(robot_tools)
         memory_mgr.stop()
 
 
 if __name__ == "__main__":
     main()
-
