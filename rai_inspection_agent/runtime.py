@@ -11,8 +11,6 @@ from rai import get_embeddings_model, get_llm_model
 from rai.agents.langchain.core import ToolCallGuard, ToolPolicy
 from rai.communication.ros2 import ROS2Connector
 from rai.memory import MemoryManager, create_memory_agent_with_tools, load_memory_config
-from rai.tools.ros2 import GetROS2TransformConfiguredTool
-from rai.tools.ros2.navigation.nav2_blocking import GetCurrentPoseTool
 from rai.tools.time import WaitForSecondsTool
 from rai_whoami import WhoamiConfig, create_robot_docs_tool, load_whoami_config
 
@@ -20,6 +18,7 @@ from rai_inspection_agent.tools import (
     AnalyzeArtifactImageTool,
     CenterGimbalAndCaptureTool,
     ControlSpeakerAlarmTool,
+    OdometryCurrentPoseTool,
     ReadGasStatusTool,
     StartGasMonitoringTool,
     StopGasMonitoringTool,
@@ -43,7 +42,7 @@ ROBOT_DOCS_PROMPT_SECTION = """## Robot Documentation Retrieval
 If the query_robot_docs tool is available, use it for questions about the robot's static documentation: hardware specifications, sensors, capabilities, URDF details, manuals, or operating limits. Do not use it for user preferences, learned facts, remembered locations, or conversation memory."""
 
 ROSBOT_TOOLS_PROMPT_SECTION = """## Robot Runtime Tools
-You can get the robot transform or current navigation pose, read the current camera image, navigate to a target pose in the map frame, and wait for a specified duration.
+You can get the robot's current pose from odometry, read the current camera image, navigate to a target pose in the map frame, and wait for a specified duration.
 
 This app does not include rai_perception object-position tools. If a task requires detecting or locating arbitrary objects, explain that limitation or ask for explicit coordinates."""
 
@@ -119,29 +118,17 @@ def create_inspection_tools() -> list[BaseTool]:
         use_sim_time=True,
         enable_tf=False,
     )
-    tf_connector = ROS2Connector(
-        node_name="rai_inspection_agent_tf",
-        executor_type="single_threaded",
-        use_sim_time=True,
-        enable_tf=True,
-    )
     return [
-        GetROS2TransformConfiguredTool(
-            connector=tf_connector,
-            source_frame="map",
-            target_frame="base_link",
-            timeout_sec=5.0,
-        ),
         WaitForSecondsTool(),
         SupervisedNavigateToPoseBlockingTool(
             connector=connector,
             frame_id="map",
             action_name="navigate_to_pose",
         ),
-        GetCurrentPoseTool(
-            connector=tf_connector,
-            frame_id="map",
-            robot_frame_id="base_link",
+        OdometryCurrentPoseTool(
+            connector=connector,
+            topic_name="/odometry",
+            topic_type="nav_msgs/msg/Odometry",
         ),
         CenterGimbalAndCaptureTool(
             connector=connector,
@@ -237,4 +224,3 @@ def welcome_message() -> AIMessage:
             "I can navigate, inspect camera images, and take centered gimbal photos."
         )
     )
-
