@@ -115,12 +115,19 @@ def create_inspection_tools() -> list[BaseTool]:
 
     connector = ROS2Connector(
         node_name="rai_inspection_agent",
-        executor_type="multi_threaded",
+        executor_type="single_threaded",
         use_sim_time=True,
+        enable_tf=False,
+    )
+    tf_connector = ROS2Connector(
+        node_name="rai_inspection_agent_tf",
+        executor_type="single_threaded",
+        use_sim_time=True,
+        enable_tf=True,
     )
     return [
         GetROS2TransformConfiguredTool(
-            connector=connector,
+            connector=tf_connector,
             source_frame="map",
             target_frame="base_link",
             timeout_sec=5.0,
@@ -132,7 +139,7 @@ def create_inspection_tools() -> list[BaseTool]:
             action_name="navigate_to_pose",
         ),
         GetCurrentPoseTool(
-            connector=connector,
+            connector=tf_connector,
             frame_id="map",
             robot_frame_id="base_link",
         ),

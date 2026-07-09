@@ -90,13 +90,26 @@ class CenterGimbalAndCaptureTool(BaseROS2Tool):
         deadline = time.monotonic() + self.result_timeout_sec
         while time.monotonic() < deadline:
             if action_api.is_goal_done(handle):
-                return self._format_result(action_api.get_result(handle), handle)
+                try:
+                    return self._format_result(action_api.get_result(handle), handle)
+                finally:
+                    self._release_action(handle)
             time.sleep(self.poll_interval_sec)
 
+        self._release_action(handle)
         raise TimeoutError(
             f"Timed out waiting for {self.action_name} result after "
             f"{self.result_timeout_sec:.1f}s; action_id={handle}"
         )
+
+    def _release_action(self, handle: str) -> None:
+        release_action = getattr(self.connector, "release_action", None)
+        if release_action is None:
+            return
+        try:
+            release_action(handle)
+        except Exception:
+            pass
 
     def _format_result(self, action_result: Any, handle: str) -> tuple[str, MultimodalArtifact]:
         result = getattr(action_result, "result", action_result)

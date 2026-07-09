@@ -115,7 +115,10 @@ class SupervisedNavigateToPoseBlockingTool(BaseROS2Tool):
         while True:
             now = time.monotonic()
             if action_api.is_goal_done(handle):
-                return self._format_result(action_api.get_result(handle), handle)
+                try:
+                    return self._format_result(action_api.get_result(handle), handle)
+                finally:
+                    self._release_action(handle)
 
             feedbacks = action_api.get_feedback(handle)
             if len(feedbacks) > last_feedback_count:
@@ -165,6 +168,17 @@ class SupervisedNavigateToPoseBlockingTool(BaseROS2Tool):
     def _cancel_action(self, handle: str) -> None:
         try:
             self.connector.terminate_action(handle)
+        except Exception:
+            pass
+        finally:
+            self._release_action(handle)
+
+    def _release_action(self, handle: str) -> None:
+        release_action = getattr(self.connector, "release_action", None)
+        if release_action is None:
+            return
+        try:
+            release_action(handle)
         except Exception:
             pass
 
