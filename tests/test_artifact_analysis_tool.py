@@ -41,6 +41,15 @@ class _FakeDocsTool:
         return "### 8. 视觉检测要求\n- 安全帽检测\n- 跑冒滴漏检测"
 
 
+class _FailingDocsTool:
+    def __init__(self):
+        self.calls = 0
+
+    def invoke(self, input_):
+        self.calls += 1
+        raise RuntimeError("rag unavailable")
+
+
 def test_analyze_artifact_image_uses_stored_image_and_returns_text(tmp_path: Path):
     artifact_root = tmp_path / "data" / "artifacts"
     store_artifacts(
@@ -90,6 +99,66 @@ def test_analyze_artifact_image_uses_robot_docs_before_vision_model(tmp_path: Pa
     assert "User Question" in prompt_text
     assert "What is visible?" in prompt_text
     assert "visible scene looks normal" in result
+
+
+def test_analyze_artifact_image_caches_robot_docs_requirements(tmp_path: Path):
+    artifact_root = tmp_path / "data" / "artifacts"
+    for call_id in ("call-1", "call-2"):
+        store_artifacts(
+            call_id,
+            [
+                {
+                    "summary": "captured",
+                    "raw_images": ["iVBORw0KGgo="],
+                    "images": [],
+                    "audios": [],
+                }
+            ],
+            db_path=artifact_root,
+        )
+    fake_docs = _FakeDocsTool()
+    tool = AnalyzeArtifactImageTool(
+        artifact_root=str(artifact_root),
+        llm=_FakeVisionModel(),
+        robot_docs_tool=fake_docs,
+    )
+
+    first = tool._run(tool_call_id="call-1", question="Analyze first image")
+    second = tool._run(tool_call_id="call-2", question="Analyze second image")
+
+    assert fake_docs.queries == ["视觉检测要求"]
+    assert "visible scene looks normal" in first
+    assert "visible scene looks normal" in second
+
+
+def test_analyze_artifact_image_does_not_cache_failed_requirements_query(
+    tmp_path: Path,
+):
+    artifact_root = tmp_path / "data" / "artifacts"
+    for call_id in ("call-1", "call-2"):
+        store_artifacts(
+            call_id,
+            [
+                {
+                    "summary": "captured",
+                    "raw_images": ["iVBORw0KGgo="],
+                    "images": [],
+                    "audios": [],
+                }
+            ],
+            db_path=artifact_root,
+        )
+    failing_docs = _FailingDocsTool()
+    tool = AnalyzeArtifactImageTool(
+        artifact_root=str(artifact_root),
+        llm=_FakeVisionModel(),
+        robot_docs_tool=failing_docs,
+    )
+
+    tool._run(tool_call_id="call-1")
+    tool._run(tool_call_id="call-2")
+
+    assert failing_docs.calls == 2
 
 
 def test_analyze_artifact_image_defaults_to_latest_artifact(tmp_path: Path):

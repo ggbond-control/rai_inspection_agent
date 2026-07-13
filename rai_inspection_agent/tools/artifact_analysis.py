@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import Any, Type
 
 from langchain_core.tools import BaseTool
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, PrivateAttr
 from rai import get_llm_model
 from rai.messages import HumanMultimodalMessage, get_stored_artifacts
 
@@ -41,6 +41,8 @@ class AnalyzeArtifactImageTool(BaseTool):
     llm: Any | None = Field(default=None, exclude=True)
     robot_docs_tool: Any | None = Field(default=None, exclude=True)
     inspection_requirements_query: str = Field(default="视觉检测要求")
+    _inspection_requirements_cache: str | None = PrivateAttr(default=None)
+    _inspection_requirements_cache_query: str | None = PrivateAttr(default=None)
 
     def _run(
         self,
@@ -79,6 +81,12 @@ class AnalyzeArtifactImageTool(BaseTool):
     def _load_inspection_requirements(self) -> str:
         if self.robot_docs_tool is None:
             return ""
+        if (
+            self._inspection_requirements_cache is not None
+            and self._inspection_requirements_cache_query
+            == self.inspection_requirements_query
+        ):
+            return self._inspection_requirements_cache
         try:
             result = self.robot_docs_tool.invoke(
                 {"query": self.inspection_requirements_query}
@@ -86,7 +94,10 @@ class AnalyzeArtifactImageTool(BaseTool):
         except Exception as e:
             return f"(Could not retrieve visual inspection requirements: {type(e).__name__}: {e})"
         content = getattr(result, "content", result)
-        return str(content).strip()
+        requirements = str(content).strip()
+        self._inspection_requirements_cache = requirements
+        self._inspection_requirements_cache_query = self.inspection_requirements_query
+        return requirements
 
     def _build_prompt(self, question: str, requirements: str) -> str:
         if not requirements:
