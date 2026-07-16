@@ -17,8 +17,9 @@ class AnalyzeArtifactImageInput(BaseModel):
     )
     question: str = Field(
         default=(
-            "Analyze this inspection image. Describe visible equipment, scene state, "
-            "and any obvious anomalies. If there is insufficient visual evidence, say so."
+            "Check the image against each retrieved visual inspection requirement. "
+            "For every item, report its status and one brief visual reason, then give "
+            "a short conclusion."
         ),
         description="Question or inspection instruction for the image analysis.",
     )
@@ -34,7 +35,8 @@ class AnalyzeArtifactImageTool(BaseTool):
     description: str = (
         "Analyze image artifacts produced by previous tool calls. "
         "This reads image files from artifact storage only for this analysis step "
-        "and returns a text result; it does not persist image data in chat history."
+        "and returns a concise requirement-by-requirement Markdown checklist; "
+        "it does not persist image data in chat history."
     )
     args_schema: Type[AnalyzeArtifactImageInput] = AnalyzeArtifactImageInput
     artifact_root: str = Field(default="data/artifacts")
@@ -100,12 +102,34 @@ class AnalyzeArtifactImageTool(BaseTool):
         return requirements
 
     def _build_prompt(self, question: str, requirements: str) -> str:
-        if not requirements:
-            return question
+        criteria = requirements or (
+            "No visual inspection requirements were retrieved. Treat the user question "
+            "as the only inspection item and state that the documented criteria were "
+            "unavailable."
+        )
         return (
-            "Use the following robot documentation requirements as the inspection "
-            "criteria for this image analysis.\n\n"
-            f"## Visual Inspection Requirements\n{requirements}\n\n"
+            "Analyze the image only from visible evidence. Do not infer details that are "
+            "not clearly shown.\n\n"
+            "Extract every concrete inspection item from the requirements below and "
+            "evaluate each item exactly once. Ignore document source labels, page numbers, "
+            "retrieval rankings, repeated text, and explanatory prose. Do not omit, merge, "
+            "or invent inspection items.\n\n"
+            "Use exactly one of these statuses for every item:\n"
+            "- 正常: the relevant target is visible and no problem is found.\n"
+            "- 异常: visible evidence clearly shows a problem.\n"
+            "- 无法判断: the target is obscured, blurred, too small, outside the view, "
+            "or otherwise lacks sufficient evidence.\n"
+            "- 不适用: the item does not apply to the visible scene, such as PPE when no "
+            "person is present.\n\n"
+            "Return only the following concise Markdown structure, in Chinese:\n\n"
+            "## 检测结果\n"
+            "- **<检测项>**：<正常|异常|无法判断|不适用> — <一句简短的可见依据>\n\n"
+            "## 结论\n"
+            "<最多两句：概括明确异常；如有无法判断项，说明需要补拍的内容。>\n\n"
+            "Do not add an introduction, scene overview, detailed report, requirement "
+            "restatement, or analysis process. Keep each item's evidence to one short "
+            "sentence and the conclusion to at most two short sentences.\n\n"
+            f"## Visual Inspection Requirements\n{criteria}\n\n"
             f"## User Question\n{question}"
         )
 

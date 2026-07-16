@@ -43,3 +43,11 @@ def test_create_inspection_tools_uses_only_no_tf_connector(monkeypatch):
     assert isinstance(tools_by_name["navigate_to_pose_blocking"], SupervisedNavigateToPoseBlockingTool)
     assert isinstance(tools_by_name["center_gimbal_and_capture"], CenterGimbalAndCaptureTool)
     assert isinstance(tools_by_name["get_current_pose"], OdometryCurrentPoseTool)
+
+
+def test_inspection_prompt_relays_visual_result_without_expansion():
+    prompt = runtime.INSPECTION_TOOLS_PROMPT_SECTION
+
+    assert "relay its requirement checklist and short conclusion directly" in prompt
+    assert "Do not expand, rewrite, or duplicate it" in prompt
+    assert "do not add claims that are absent from the tool result" in prompt

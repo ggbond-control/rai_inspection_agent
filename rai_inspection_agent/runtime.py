@@ -49,6 +49,7 @@ This app does not include rai_perception object-position tools. If a task requir
 INSPECTION_TOOLS_PROMPT_SECTION = """## Inspection Runtime Tools
 When the user asks to take an inspection photo with the gimbal, use center_gimbal_and_capture. This tool centers the gimbal first, waits for settling, captures the requested photo(s), and returns the saved image path and execution status.
 When the user asks to analyze, inspect, describe, or judge a previously captured inspection photo, use analyze_artifact_image. Use tool_call_id "latest" unless the user gives a specific tool call id.
+After analyze_artifact_image returns, relay its requirement checklist and short conclusion directly. Do not expand, rewrite, or duplicate it as a detailed inspection report, and do not add claims that are absent from the tool result.
 When the user says "播放检测到气体泄漏", use control_speaker_alarm with command "gas_leak".
 When the user says "播放检测到温度异常", use control_speaker_alarm with command "temperature_abnormal".
 When the user says "停止播放", use control_speaker_alarm with command "stop".

@@ -98,7 +98,32 @@ def test_analyze_artifact_image_uses_robot_docs_before_vision_model(tmp_path: Pa
     assert "安全帽检测" in prompt_text
     assert "User Question" in prompt_text
     assert "What is visible?" in prompt_text
+    assert "evaluate each item exactly once" in prompt_text
+    assert "正常|异常|无法判断|不适用" in prompt_text
+    assert "## 检测结果" in prompt_text
+    assert "## 结论" in prompt_text
+    assert "conclusion to at most two short sentences" in prompt_text
     assert "visible scene looks normal" in result
+
+
+def test_analyze_artifact_image_prompt_keeps_concise_format_without_rag():
+    tool = AnalyzeArtifactImageTool(llm=_FakeVisionModel())
+
+    prompt = tool._build_prompt("检查画面", "")
+
+    assert "documented criteria were unavailable" in prompt
+    assert "## 检测结果" in prompt
+    assert "## 结论" in prompt
+    assert "Do not add an introduction, scene overview, detailed report" in prompt
+
+
+def test_analyze_artifact_image_default_question_requests_checklist():
+    tool = AnalyzeArtifactImageTool(llm=_FakeVisionModel())
+    default_question = tool.args_schema.model_fields["question"].default
+
+    assert "each retrieved visual inspection requirement" in default_question
+    assert "one brief visual reason" in default_question
+    assert "short conclusion" in default_question
 
 
 def test_analyze_artifact_image_caches_robot_docs_requirements(tmp_path: Path):
