@@ -68,10 +68,18 @@ def install_inspection_tool_policy_override() -> None:
     @classmethod
     def with_inspection_policies(cls) -> ToolCallGuard:
         guard = original()
-        guard.max_total_calls_per_turn = 20
+        guard.max_total_calls_per_turn = 40
         guard.policies["navigate_to_pose_blocking"] = ToolPolicy(
             max_calls_per_turn=12,
             max_consecutive_calls=12,
+        )
+        guard.policies["analyze_artifact_image"] = ToolPolicy(
+            max_calls_per_turn=12,
+            max_consecutive_calls=12,
+        )
+        guard.policies["center_gimbal_and_capture"] = ToolPolicy(
+            max_calls_per_turn=12,
+            max_consecutive_calls=4,
         )
         return guard
 
